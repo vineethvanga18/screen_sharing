@@ -1,70 +1,50 @@
 <!DOCTYPE html>
-<html lang=”en”>
+<html lang="en">
 
 <head>
-  <meta charset=”UTF-8” />
-  <meta name=”viewport” content=”width=device-width, initial-scale=1.0” />
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" media="screen" href="stylesheets/main.css">
   <title>WebRTC</title>
-
-  <style type=”text/css”>
-    body {
-      margin: 0;
-      font-size: 20px;
-    }
-
-    .centered {
-      position: absolute;
-      top: 40%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
-
-    .video-position {
-      position: absolute;
-      top: 35%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-    }
-
-    #video-chat-container {
-      width: 100%;
-      background-color: black;
-    }
-
-    #local-video {
-      position: absolute;
-      height: 30%;
-      width: 30%;
-      bottom: 0px;
-      left: 0px;
-    }
-
-    #remote-video {
-      height: 30%;
-      width: 30%;
-    }
-  </style>
 </head>
 
 <body>
   <div id="room-selection-container" class=”centered”>
     <h1>WebRTC video conference</h1>
-    <label>Enter the number of the room you want to connect</label>
-    <input id="user_name" type="text" />
-    <input id="room-input" type="text" />
+    <input id="user_name" type="text" placeholder="user name" />
+    <input id="room-input" type="text" placeholder="room number" />
     <button id="connect-button">CONNECT</button>
   </div>
-  <!-- <form id="sendform" action="">
-    <input type="text" id="message">
-    <button id="send">Send Text over DataChannel</button>
-  </form> -->
   <div id="video-chat-container" class="video-position" style="display: none">
+    <video id="remote-video" autoplay="autoplay">Remote</video>
     <video id="local-video" autoplay="autoplay"></video>
-    <video id="remote-video" autoplay="autoplay"></video>
+    <div id="chat-container">
+      <textarea id="messagecontainer"></textarea>
+      <div id="sendmessage">
+        <textarea id="messages" placeholder="type your message..."></textarea>
+        <button id="send-message">send</button>
+      </div>
+      <div id="filesection">
+        <form id="fileInfo">
+          <input type="file" id="fileInput" name="files" />
+        </form>
+        <button disabled id="sendFile">Send</button>
+        <button disabled id="abortButton">Abort</button>
+
+        <div class="progress">
+          <div class="label">Send progress: </div>
+          <progress id="sendProgress" max="0" value="0"></progress>
+        </div>
+        <a id="download">click here to Download</a>
+        <span id="status"></span>
+      </div>
+    </div>
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
+
+    'use strict';
     const roomSelectionContainer = document.getElementById('room-selection-container')
     const roomInput = document.getElementById('room-input')
     const connectButton = document.getElementById('connect-button')
@@ -73,7 +53,22 @@
     const remoteVideoComponent = document.getElementById('remote-video')
     const localVideoComponent = document.getElementById('local-video')
     const userInput = document.getElementById('user_name')
-    const sendButton = document.querySelector('#send');
+    const sendButton = document.getElementById('send-message');
+    let fileReader;
+    const fileInput = document.querySelector('input#fileInput');
+    const abortButton = document.querySelector('button#abortButton');
+    const downloadAnchor = document.querySelector('a#download');
+    const sendProgress = document.querySelector('progress#sendProgress');
+    const statusMessage = document.querySelector('span#status');
+    const sendFileButton = document.querySelector('button#sendFile');
+    const messagecontainer = document.getElementById('messagecontainer');
+
+
+    let bytesPrev = 0;
+    let timestampPrev = 0;
+    let timestampStart;
+    let statsInterval = null;
+
 
     // Variables.
     const socket = io()
@@ -87,23 +82,120 @@
     let rtcPeerConnection // Connection between the local device and the remote peer.
     let roomId, user_name
     let dataChannel
+    let file
 
     // Free public STUN servers provided by Google.
     const iceServers = {
       iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' },
-        { urls: 'stun:stun3.l.google.com:19302' },
-        { urls: 'stun:stun4.l.google.com:19302' },
       ],
     }
 
+    rtcPeerConnection = new RTCPeerConnection(iceServers)
+    var dataChannelOptions = {
+      reliable: true
+    };
+
+    dataChannel = rtcPeerConnection.createDataChannel("testDataChannel");
+    rtcPeerConnection.ondatachannel = function (event) {
+      handleChannelCallback(event);
+    }
+
+    var handleDataChannelOpen = function (event) {
+      console.log("dataChannel.OnOpen", event);
+    };
+
+    dataChannel.onmessage = function (event) {
+      if (typeof event.data == 'string') {
+        messagecontainer.value += event.data + '\n';
+      }
+      else {
+        downloadAnchor.textContent = 'click here to Download';
+        var blob = new Blob([event.data], { type: "text/plain" });
+        downloadAnchor.href = window.URL.createObjectURL(blob);
+        var fileName = "sample";
+        downloadAnchor.download = fileName;
+      }
+    }
+
+    var handleDataChannelError = function (error) {
+      console.log("dataChannel.OnError:", error);
+    };
+
+    var handleDataChannelClose = function (event) {
+      console.log("dataChannel.OnClose", event);
+    };
+
+    var handleChannelCallback = function (event) {
+      dataChannel = event.channel;
+      dataChannel.onopen = handleDataChannelOpen;
+      dataChannel.onerror = handleDataChannelError;
+      dataChannel.onclose = handleDataChannelClose;
+    };
     // BUTTON LISTENER ============================================================
     connectButton.addEventListener('click', () => {
       joinRoom(roomInput.value, userInput.value);
     })
-    // console.log(connectButton);
+    sendButton.addEventListener('click', () => {
+      var x = document.getElementById("messages").value;
+      messageSend(x);
+    })
+
+    sendFileButton.addEventListener('click', () => createConnection());
+    fileInput.addEventListener('change', handleFileInputChange, false);
+    abortButton.addEventListener('click', () => {
+      fileInput.disabled = false;
+      sendFileButton.disabled = false;
+    });
+
+    async function handleFileInputChange() {
+      const file = fileInput.files[0];
+      if (!file) {
+        console.log('No file chosen');
+      } else {
+        sendFileButton.disabled = false;
+      }
+    }
+
+    async function createConnection() {
+      abortButton.disabled = false;
+      sendFileButton.disabled = true;
+      dataChannel.binaryType = 'arraybuffer';
+      downloadAnchor.textContent = '';
+      fileInput.disabled = true;
+      sendData();
+    }
+
+    function sendData() {
+      const file = fileInput.files[0];
+      console.log(`File is ${[file.name, file.size, file.type, file.lastModified].join(' ')}`);
+
+      if (file.size === 0) {
+        statusMessage.textContent = 'File is empty, please select a non-empty file';
+        return;
+      }
+      sendProgress.max = file.size;
+      const chunkSize = 16384;
+      fileReader = new FileReader();
+      let offset = 0;
+      fileReader.addEventListener('error', error => console.error('Error reading file:', error));
+      fileReader.addEventListener('abort', event => console.log('File reading aborted:', event));
+      fileReader.addEventListener('load', e => {
+        console.log('FileRead.onload ', e);
+        dataChannel.send(e.target.result);
+        offset += e.target.result.byteLength;
+        sendProgress.value = offset;
+        if (offset < file.size) {
+          readSlice(offset);
+        }
+      });
+      const readSlice = o => {
+        console.log('readSlice ', o);
+        const slice = file.slice(offset, o + chunkSize);
+        fileReader.readAsArrayBuffer(slice);
+      };
+      readSlice(0);
+    }
+
     // SOCKET EVENT CALLBACKS =====================================================
     socket.on('room_created', async () => {
       console.log('Socket event callback: room_created')
@@ -125,14 +217,16 @@
       alert('The room is full, please try another one')
     })
 
+
+
     // FUNCTIONS ==================================================================
     function joinRoom(room, user) {
-      if (room === '' || user_name == '') {
+      if (room === '' || user == '') {
         alert('Please type valid room or user_name')
       } else {
         user_name = user;
         roomId = room
-        socket.emit('join', room)
+        socket.emit('join', roomId, user_name)
         showVideoConference()
       }
     }
@@ -145,7 +239,7 @@
     async function setLocalStream(mediaConstraints) {
       let stream
       try {
-        stream = await navigator.mediaDevices.getUserMedia(mediaConstraints)
+        stream = await navigator.mediaDevices.getDisplayMedia(mediaConstraints)
       } catch (error) {
         console.error('Could not get user media', error)
       }
@@ -157,7 +251,6 @@
       console.log('Socket event callback: start_call')
 
       if (isRoomCreator) {
-        rtcPeerConnection = new RTCPeerConnection(iceServers)
         addLocalTracks(rtcPeerConnection)
         rtcPeerConnection.ontrack = setRemoteStream
         rtcPeerConnection.onicecandidate = sendIceCandidate
@@ -169,7 +262,6 @@
       console.log('Socket event callback: webrtc_offer')
 
       if (!isRoomCreator) {
-        rtcPeerConnection = new RTCPeerConnection(iceServers)
         addLocalTracks(rtcPeerConnection)
         rtcPeerConnection.ontrack = setRemoteStream
         rtcPeerConnection.onicecandidate = sendIceCandidate
@@ -177,6 +269,7 @@
         await createAnswer(rtcPeerConnection)
       }
     })
+
 
     socket.on('webrtc_answer', (event) => {
       console.log('Socket event callback: webrtc_answer')
@@ -247,6 +340,12 @@
           candidate: event.candidate.candidate,
         })
       }
+    }
+
+    function messageSend(msg) {
+      var msg = `${user_name + ' : ' + msg}`;
+      messagecontainer.value += msg + '\n';
+      dataChannel.send(msg);
     }
   </script>
 </body>

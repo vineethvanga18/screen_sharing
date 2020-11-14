@@ -1,4 +1,3 @@
-@CHARSET "UTF-8";
 
 * {
   margin: 0px;
@@ -27,20 +26,6 @@ body{
   background-color: #ffffff;  
 }
 
-h1,
-h2,
-h3,
-h4,
-h5,
-h6 {
-  margin: 10px 0;
-  font-family: inherit;
-  font-weight: bold;
-  line-height: 1.5em;
-  color: inherit;
-  text-rendering: optimizelegibility;
-}
-
 
 html {
   font-size: 100%;
@@ -54,9 +39,13 @@ input{
   padding: 0.5em 1em;
 }
 
+#messagecontainer{
+  margin: 10px;
+  height: 100px;
+  width: 48%;
+}
 
-
-div.message{
+#messages{
   margin: 0.5em 0.5em;
   border-radius: 0.3em;
   padding: 0.5em 1em;
@@ -66,31 +55,35 @@ div.message{
   color: #444;
 }
 
-div.message.from{
-  margin: 0.3em 2em;
-}
-
 body{
   background-color: #455;
 }
-.main{
-  display: inline-block;
-  padding: 2em;
-  margin-bottom: 5em;
+
+#video-chat-container{
+  display: flex;
+  flex-direction: row;
+  flex-basis: 50%;
+  justify-content: space-between;
 }
 
-#wslog{
-  box-shadow: inset 0 1em 2em -1em rgba(30,50,40,0.5),
-              inset 0 -1em 2em -1em rgba(30,50,40,0.5);
-  height: 15em;
-  width: 100%;
-  line-height: 1em;
-  overflow-y: auto;
-  word-wrap: break-word;
-}
-
-#local_video{
+#local-video{
+  margin: 10px;
   border: 1px;
-  width: 50px solid;
+  width: 48%;
+  height: 60vh;
+  background-color: black;
 }
+
+#remote-video{
+  margin: 10px;
+  border: 1px;
+  width: 48%;
+  height: 60vh;
+  background-color: black;
+}
+
+#filesection{
+  margin: 10px;
+}
+
 
