@@ -79,7 +79,7 @@
     let localStream
     let remoteStream
     let isRoomCreator
-    let rtcPeerConnection // Connection between the local device and the remote peer.
+    let rtcPeerConnection
     let roomId, user_name
     let dataChannel
     let file
@@ -131,17 +131,20 @@
       dataChannel.onerror = handleDataChannelError;
       dataChannel.onclose = handleDataChannelClose;
     };
-    // BUTTON LISTENER ============================================================
+
     connectButton.addEventListener('click', () => {
       joinRoom(roomInput.value, userInput.value);
     })
+
     sendButton.addEventListener('click', () => {
       var x = document.getElementById("messages").value;
       messageSend(x);
     })
 
     sendFileButton.addEventListener('click', () => createConnection());
+
     fileInput.addEventListener('change', handleFileInputChange, false);
+
     abortButton.addEventListener('click', () => {
       fileInput.disabled = false;
       sendFileButton.disabled = false;
@@ -188,15 +191,16 @@
           readSlice(offset);
         }
       });
+
       const readSlice = o => {
         console.log('readSlice ', o);
         const slice = file.slice(offset, o + chunkSize);
         fileReader.readAsArrayBuffer(slice);
       };
+
       readSlice(0);
     }
 
-    // SOCKET EVENT CALLBACKS =====================================================
     socket.on('room_created', async () => {
       console.log('Socket event callback: room_created')
 
@@ -217,9 +221,6 @@
       alert('The room is full, please try another one')
     })
 
-
-
-    // FUNCTIONS ==================================================================
     function joinRoom(room, user) {
       if (room === '' || user == '') {
         alert('Please type valid room or user_name')
@@ -279,8 +280,6 @@
 
     socket.on('webrtc_ice_candidate', (event) => {
       console.log('Socket event callback: webrtc_ice_candidate')
-
-      // ICE candidate configuration.
       var candidate = new RTCIceCandidate({
         sdpMLineIndex: event.label,
         candidate: event.candidate,
@@ -288,7 +287,6 @@
       rtcPeerConnection.addIceCandidate(candidate)
     })
 
-    // FUNCTIONS ==================================================================
     function addLocalTracks(rtcPeerConnection) {
       localStream.getTracks().forEach((track) => {
         rtcPeerConnection.addTrack(track, localStream)
