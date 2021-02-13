@@ -10,38 +10,43 @@
 
 <body>
   <div id="room-selection-container" class=”centered”>
-    <h1>WebRTC video conference</h1>
+    <h1>VNS321</h1>
     <input id="user_name" type="text" placeholder="user name" />
     <input id="room-input" type="text" placeholder="room number" />
     <button id="connect-button">CONNECT</button>
   </div>
   <div id="video-chat-container" class="video-position" style="display: none">
     <div class="video">
-      <video id="remote-video" autoplay="autoplay"></video>
       <video id="local-video" autoplay="autoplay"></video>
+      <video id="remote-video" autoplay="autoplay"></video>
     </div>
     <div id="editor-container">
       <div id="editor"></div>
     </div>
-    <div id="chat-container">
-      <textarea id="messagecontainer"></textarea>
-      <div id="sendmessage">
-        <textarea id="messages" placeholder="type your message..."></textarea>
-        <button id="send-message">send</button>
+    <div id="actions">
+      <div class="chat-container">
+        <textarea id="messagecontainer"></textarea>
+        <div id="sendmessage">
+          <textarea id="messages" placeholder="type your message..."></textarea>
+          <button id="send-message">send</button>
+        </div>
       </div>
       <div id="filesection">
-        <form id="fileInfo">
-          <input type="file" id="fileInput" name="files" />
-        </form>
-        <button disabled id="sendFile">Send</button>
-        <button disabled id="abortButton">Abort</button>
-
-        <div class="progress">
-          <div class="label">Send progress: </div>
-          <progress id="sendProgress" max="0" value="0"></progress>
+        <div class="choose">
+          <form id="fileInfo">
+            <input type="file" id="fileInput" name="files" />
+          </form>
+          <button disabled id="sendFile" style="margin-left: 1em;">Send</button>
+          <button disabled id="abortButton">Abort</button>
         </div>
-        <a id="download">click here to Download</a>
-        <span id="status"></span>
+        <div class="progress-container" style="padding-left: 1em;">
+          <div class="progress">
+            <div class="label">Send progress: </div>
+            <progress id="sendProgress" max="0" value="0"></progress>
+          </div>
+          <a id="download">click here to Download</a>
+          <span id="status"></span>
+        </div>
       </div>
     </div>
   </div>
@@ -93,12 +98,51 @@
     let file
 
     // Free public STUN servers provided by Google.
-    const iceServers = {
-      iceServers: [
-      ],
+    var ICE_config = {
+      'iceServers': [
+        {
+          'url': 'stun:stun.l.google.com:19302'
+        },
+        {
+          'url': 'stun:stun1.l.google.com:19302'
+        },
+        {
+          'url': 'stun:stun2.l.google.com:19302'
+        },
+        {
+          'url': 'stun:stun3.l.google.com:19302'
+        },
+        {
+          'url': 'stun:stun4.l.google.com:19302'
+        },
+        {
+          url: 'turn:numb.viagenie.ca',
+          credential: 'muazkh',
+          username: 'webrtc@live.com'
+        },
+        {
+          url: 'turn:192.158.29.39:3478?transport=udp',
+          credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
+          username: '28224511:1379330808'
+        },
+        {
+          url: 'turn:192.158.29.39:3478?transport=tcp',
+          credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
+          username: '28224511:1379330808'
+        },
+        {
+          url: 'turn:turn.bistri.com:80',
+          credential: 'homeo',
+          username: 'homeo'
+        },
+        {
+          url: 'turn:turn.anyfirewall.com:443?transport=tcp',
+          credential: 'webrtc',
+          username: 'webrtc'
+        }
+      ]
     }
-
-    rtcPeerConnection = new RTCPeerConnection(iceServers)
+    rtcPeerConnection = new RTCPeerConnection(ICE_config)
     var dataChannelOptions = {
       reliable: true
     };
