@@ -4,6 +4,7 @@
   "description": "A CS311 project",
   "main": "index.js",
   "dependencies": {
+    "ace-builds": "^1.4.12",
     "express": "^3.0.0",
     "http": "^0.0.1-security",
     "nodemon": "^2.0.6",

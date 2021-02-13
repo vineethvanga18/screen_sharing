@@ -3,6 +3,8 @@ const app = express()
 const server = require('http').createServer(app)
 const io = require('socket.io')(server)
 
+app.use(express.static('lib'))
+app.use(express.static('node_modules/ace-builds/src-noconflict'))
 app.use('/', express.static('public'))
 
 io.on('connection', (socket) => {
@@ -15,13 +17,14 @@ io.on('connection', (socket) => {
       console.log(`Creating room ${roomId} and emitting room_created socket event`)
       socket.join(roomId)
       socket.emit('room_created', roomId)
-    } else if (numberOfClients == 1) {
+      socket.emit('init', { id: roomId })
+      // socket.on('message', op => { socket.broadcast.emit('message', op) })
+    } else {
       console.log(`Joining room ${roomId} and emitting room_joined socket event`)
       socket.join(roomId)
       socket.emit('room_joined', roomId)
-    } else {
-      console.log(`Can't join room ${roomId}, emitting full_room socket event`)
-      socket.emit('full_room', roomId)
+      socket.emit('init', { id: roomId })
+      // socket.on('message', op => { socket.broadcast.emit('message', op) })
     }
   })
 
@@ -42,6 +45,8 @@ io.on('connection', (socket) => {
     console.log(`Broadcasting webrtc_ice_candidate event to peers in room ${event.roomId}`)
     socket.broadcast.to(event.roomId).emit('webrtc_ice_candidate', event)
   })
+  socket.on('message', op => { socket.broadcast.emit('message', op) })
+  
 })
 
 // START THE SERVER =================================================================
