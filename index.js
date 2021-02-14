@@ -45,8 +45,10 @@ io.on('connection', (socket) => {
     console.log(`Broadcasting webrtc_ice_candidate event to peers in room ${event.roomId}`)
     socket.broadcast.to(event.roomId).emit('webrtc_ice_candidate', event)
   })
-  socket.on('message', op => { socket.broadcast.emit('message', op) })
-  
+  socket.on('message', op => {console.log(op.id, op); socket.broadcast.to(op.id).emit('message', op) })
+  socket.on('download-file', (event) => {
+    socket.broadcast.to(event.roomId).emit('download-file', event.file_desc)
+  })
 })
 
 // START THE SERVER =================================================================

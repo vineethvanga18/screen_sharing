@@ -10,7 +10,7 @@
 
 <body>
   <div id="room-selection-container" class=”centered”>
-    <h1>VNS321</h1>
+    <h1>CS321 WebRTC Solutions</h1>
     <input id="user_name" type="text" placeholder="user name" />
     <input id="room-input" type="text" placeholder="room number" />
     <button id="connect-button">CONNECT</button>
@@ -81,7 +81,8 @@
     let timestampPrev = 0;
     let timestampStart;
     let statsInterval = null;
-
+    let receiveBuffer = [];
+    let receivedSize = 0;
 
     // Variables.
     // const socket = io()
@@ -107,15 +108,6 @@
           'url': 'stun:stun1.l.google.com:19302'
         },
         {
-          'url': 'stun:stun2.l.google.com:19302'
-        },
-        {
-          'url': 'stun:stun3.l.google.com:19302'
-        },
-        {
-          'url': 'stun:stun4.l.google.com:19302'
-        },
-        {
           url: 'turn:numb.viagenie.ca',
           credential: 'muazkh',
           username: 'webrtc@live.com'
@@ -129,11 +121,6 @@
           url: 'turn:192.158.29.39:3478?transport=tcp',
           credential: 'JZEOEt2V3Qb0y27GRntt2u2PAYA=',
           username: '28224511:1379330808'
-        },
-        {
-          url: 'turn:turn.bistri.com:80',
-          credential: 'homeo',
-          username: 'homeo'
         },
         {
           url: 'turn:turn.anyfirewall.com:443?transport=tcp',
@@ -161,11 +148,8 @@
         messagecontainer.value += event.data + '\n';
       }
       else {
-        downloadAnchor.textContent = 'click here to Download';
-        var blob = new Blob([event.data], { type: "text/plain" });
-        downloadAnchor.href = window.URL.createObjectURL(blob);
-        var fileName = "sample";
-        downloadAnchor.download = fileName;
+        receiveBuffer.push(event.data);
+        receivedSize += event.data.byteLength;
       }
     }
 
@@ -251,6 +235,17 @@
       };
 
       readSlice(0);
+      setTimeout(() => {
+        let file_desc = {
+          name: file.name,
+          size: file.size,
+          type: file.type
+        }
+        socket.emit('download-file', {
+          file_desc,
+          roomId,
+        });
+      }, 3000);
     }
 
     socket.on('room_created', async () => {
@@ -258,6 +253,14 @@
 
       await setLocalStream(mediaConstraints)
       isRoomCreator = true
+    })
+    socket.on('download-file', (file_desc) => {
+      // if (receivedSize == file_desc.size) {
+      downloadAnchor.textContent = 'click here to Download';
+      var blob = new Blob(receiveBuffer, { type: file_desc.type });
+      downloadAnchor.href = window.URL.createObjectURL(blob);
+      downloadAnchor.download = file_desc.name;
+      // }
     })
 
     socket.on('room_joined', async () => {
