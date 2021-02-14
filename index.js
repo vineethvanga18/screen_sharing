@@ -49,6 +49,9 @@ io.on('connection', (socket) => {
   socket.on('download-file', (event) => {
     socket.broadcast.to(event.roomId).emit('download-file', event.file_desc)
   })
+  socket.on('text-message', (event) => {
+    socket.broadcast.to(event.roomId).emit('text-message', event)
+  })
 })
 
 // START THE SERVER =================================================================

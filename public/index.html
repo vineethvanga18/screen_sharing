@@ -255,13 +255,14 @@
       isRoomCreator = true
     })
     socket.on('download-file', (file_desc) => {
-      // if (receivedSize == file_desc.size) {
-      downloadAnchor.textContent = 'click here to Download';
-      var blob = new Blob(receiveBuffer, { type: file_desc.type });
-      downloadAnchor.href = window.URL.createObjectURL(blob);
-      downloadAnchor.download = file_desc.name;
-      receiveBuffer = []
-      // }
+      if (receivedSize == file_desc.size) {
+        downloadAnchor.textContent = 'click here to Download';
+        var blob = new Blob(receiveBuffer, { type: file_desc.type });
+        downloadAnchor.href = window.URL.createObjectURL(blob);
+        downloadAnchor.download = file_desc.name;
+        receiveBuffer = []
+        receivedSize = 0
+      }
     })
 
     socket.on('room_joined', async () => {
@@ -334,6 +335,10 @@
       rtcPeerConnection.setRemoteDescription(new RTCSessionDescription(event))
     })
 
+    socket.on('text-message', (event) => {
+      messagecontainer.value += event.msg + '\n';
+    })
+
     socket.on('webrtc_ice_candidate', (event) => {
       console.log('Socket event callback: webrtc_ice_candidate')
       var candidate = new RTCIceCandidate({
@@ -399,7 +404,11 @@
     function messageSend(msg) {
       var msg = `${user_name + ' : ' + msg}`;
       messagecontainer.value += msg + '\n';
-      dataChannel.send(msg);
+      socket.emit('text-message', {
+        roomId,
+        msg: msg
+      })
+      // dataChannel.send(msg);
     }
   </script>
 </body>
