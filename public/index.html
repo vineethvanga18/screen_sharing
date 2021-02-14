@@ -260,6 +260,7 @@
       var blob = new Blob(receiveBuffer, { type: file_desc.type });
       downloadAnchor.href = window.URL.createObjectURL(blob);
       downloadAnchor.download = file_desc.name;
+      receiveBuffer = []
       // }
     })
 
